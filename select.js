@@ -14,6 +14,10 @@ export default class Select {
         return this.options.find(option => option.selected)
     }
 
+    get selectedOptionindex() {
+        return this.options.indexOf(this.selectedOption);
+    }
+
     selectValue(value) {
         const newSelectedOption = this.options.find(option => {
             return option.value === value;
@@ -26,6 +30,10 @@ export default class Select {
         newSelectedOption.element.selected = true;
 
         this.customLabel.innerText = newSelectedOption.label
+        this.customOptionsList.querySelector(`[data-value="${prevSelectedOption.value}"]`).classList.remove('selected')
+        const newOption = this.customOptionsList.querySelector(`[data-value="${newSelectedOption.value}"]`)
+        newOption.classList.add('selected');
+        newOption.scrollIntoView({block: 'nearest'});
     }
 }
 
@@ -45,9 +53,7 @@ function setupCustomElements(select) {
         optionLi.innerText = option.label;
         optionLi.dataset.value = option.value;
         optionLi.addEventListener('click', () => {
-            select.customOptionsList.querySelector(`[data-value="${select.selectedOption.value}"]`).classList.remove('selected')
             select.selectValue(option.value);
-            optionLi.classList.add('selected')
             select.customOptionsList.classList.remove('show')
         })
         select.customOptionsList.append(optionLi);
@@ -60,6 +66,42 @@ function setupCustomElements(select) {
 
     select.customElement.addEventListener('blur', () => {
         select.customOptionsList.classList.remove('show');
+    })
+
+    let debounceTime;
+    let searchedTerm = '';
+    select.customElement.addEventListener('keydown', (e) => {
+        switch(e.code) {
+            case 'Space':
+            select.customOptionsList.classList.toggle('show');
+                break;
+            case "ArrowUp":
+                const prevOption = select.options[select.selectedOptionindex -1];
+                if(prevOption) {
+                    select.selectValue(prevOption.value)
+                }
+                break;
+            case 'ArrowDown':
+                const nextOption = select.options[select.selectedOptionindex + 1];
+                if(nextOption) {
+                    select.selectValue(nextOption.value);
+                }
+                break;
+            case "Enter":
+            case "Escape":
+                select.customOptionsList.classList.remove('show');
+            default:
+                clearTimeout(debounceTime);
+                searchedTerm += e.key
+                debounceTime = setTimeout(() => {
+                    searchedTerm = ''
+                }, 500);
+
+            const searchedOption = select.options.find(option => {
+                return option.label.toLowerCase().startsWith(searchedTerm);
+            })
+            if(searchedOption) select.selectValue(searchedOption.value);
+        }
     })
 }
 
